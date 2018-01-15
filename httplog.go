@@ -16,6 +16,14 @@ type Reporter interface {
 	Report(res *http.Response, req *http.Request)
 }
 
+// ReporterFunc is a helper for defining a Reporter
+// in the same spirit as http.HandlerFunc
+type ReporterFunc func(*http.Response, *http.Request)
+
+func (r ReporterFunc) Report(res *http.Response, req *http.Request) {
+	r(res, req)
+}
+
 // LoggingMiddleware is the adapter that implements logging
 type LoggingMiddleware struct {
 	h http.Handler
@@ -54,8 +62,8 @@ func (l LoggingMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	l.r.Report(rw.Result(), req)
 }
 
-// NewMiddleware is a factory that creates a LogMiddleware
-func NewMiddleware(r Reporter) Middleware {
+// New is a factory that creates a LogMiddleware
+func New(r Reporter) Middleware {
 	return func(h http.Handler) http.Handler {
 		return LoggingMiddleware{h, r}
 	}
