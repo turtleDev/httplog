@@ -179,6 +179,7 @@ func ExampleLoggingMiddleware() {
 		}
 		payload := string(raw)
 		fmt.Printf("%s %s\n", req.URL.Path, payload)
+		// should print /some/path example
 	}
 
 	handler := func(w http.ResponseWriter, r *http.Request) {
