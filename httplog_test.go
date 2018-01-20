@@ -1,6 +1,8 @@
 package httplog
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -66,6 +68,41 @@ func TestRequest(t *testing.T) {
 	}
 }
 
+func TestRequestWithoutBody(t *testing.T) {
+	var reported string
+	var err error
+
+	payload := "something something"
+	reporter := func(res *http.Response, req *http.Request) {
+		var raw []byte
+		raw, err = ioutil.ReadAll(req.Body)
+		if err == nil {
+			reported = string(raw)
+		}
+	}
+
+	middleware := New(ReporterFunc(reporter), false)
+
+	h := middleware(http.HandlerFunc(echoHandler))
+
+	r := httptest.NewRequest("POST", "/", strings.NewReader(payload))
+	w := httptest.NewRecorder()
+
+	h.ServeHTTP(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("echo handler returned error: %d %s", w.Code, w.Body.String())
+	}
+
+	if len(reported) != 0 {
+		t.Errorf("expected no payload, got '%s'", reported)
+	}
+
+	if err != nil {
+		t.Error("error in reporter", err)
+	}
+}
+
 func TestResponse(t *testing.T) {
 
 	// response reported by the reporter
@@ -102,5 +139,34 @@ func TestResponse(t *testing.T) {
 
 	if err != nil {
 		t.Error("error in reporter", err)
+	}
+}
+
+func TestDumpRequest(t *testing.T) {
+	payload := "wiggle wop"
+	req := httptest.NewRequest("POST", "/", strings.NewReader(payload))
+
+	raw, err := dumpRequest(req, true)
+	if err != nil {
+		t.Error("error in dumpRequest:", err)
+	}
+	rr, err := http.ReadRequest(bufio.NewReader(bytes.NewReader(raw)))
+	if err != nil {
+		t.Error("error parsing request:", err)
+	}
+
+	length := int64(len(payload))
+	if rr.ContentLength != length {
+		t.Errorf("wrong content type, expected '%d', got '%d'", length, rr.ContentLength)
+	}
+
+	raw, err = ioutil.ReadAll(rr.Body)
+	if err != nil {
+		t.Error("error reading request body:", err)
+	}
+
+	got := string(raw)
+	if got != payload {
+		t.Error("incorrect payload, expected '%s', got '%s'", payload, got)
 	}
 }

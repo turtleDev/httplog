@@ -69,7 +69,7 @@ func (l LoggingMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// get the raw representation of the request.
 	// note that it changes certain aspects of the request (for example, case of the headers)
-	raw, err := dumpRequest(r, true)
+	raw, err := dumpRequest(r, l.body)
 	if err != nil {
 		log.Printf("httplog: %v\n", err)
 		l.h.ServeHTTP(w, r)
