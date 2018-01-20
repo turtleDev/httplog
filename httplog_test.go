@@ -25,6 +25,7 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func TestRequest(t *testing.T) {
+
 	// reported is the incoming payload reported by the reporter
 	var reported string
 	var err error
@@ -42,7 +43,7 @@ func TestRequest(t *testing.T) {
 	}
 
 	// create a new middleware
-	middleware := New(ReporterFunc(reporter))
+	middleware := New(ReporterFunc(reporter), true)
 
 	// wrap the handler in the middleware
 	h := middleware(http.HandlerFunc(echoHandler))
@@ -52,8 +53,12 @@ func TestRequest(t *testing.T) {
 
 	h.ServeHTTP(w, r)
 
+	if w.Code != http.StatusOK {
+		t.Errorf("echo handler returned error: %d %s", w.Code, w.Body.String())
+	}
+
 	if reported != payload {
-		t.Errorf("invalid request payload, expected %s, got %s", payload, reported)
+		t.Errorf("invalid request payload, expected '%s', got '%s'", payload, reported)
 	}
 
 	if err != nil {
@@ -79,7 +84,7 @@ func TestResponse(t *testing.T) {
 		}
 	}
 
-	middleware := New(ReporterFunc(reporter))
+	middleware := New(ReporterFunc(reporter), true)
 	h := middleware(http.HandlerFunc(echoHandler))
 
 	r := httptest.NewRequest("POST", "/", strings.NewReader(payload))
@@ -87,8 +92,12 @@ func TestResponse(t *testing.T) {
 
 	h.ServeHTTP(w, r)
 
+	if w.Code != http.StatusOK {
+		t.Errorf("echo handler returned error: %d %s", w.Code, w.Body.String())
+	}
+
 	if reported != outputPrefix(payload) {
-		t.Errorf("invalid request payload, expected %s, got %s", payload, reported)
+		t.Errorf("invalid request payload, expected '%s', got '%s'", payload, reported)
 	}
 
 	if err != nil {
