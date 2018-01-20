@@ -167,6 +167,31 @@ func TestDumpRequest(t *testing.T) {
 
 	got := string(raw)
 	if got != payload {
-		t.Error("incorrect payload, expected '%s', got '%s'", payload, got)
+		t.Errorf("incorrect payload, expected '%s', got '%s'", payload, got)
 	}
+}
+
+func ExampleLoggingMiddleware() {
+	reporter := func(res *http.Response, req *http.Request) {
+		raw, err := ioutil.ReadAll(req.Body)
+		if err != nil {
+			// handle error here
+		}
+		payload := string(raw)
+		fmt.Printf("%s %s\n", req.URL.Path, payload)
+		// Output: /some/path example
+	}
+
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, "OK")
+	}
+
+	middleware := New(ReporterFunc(reporter), true)
+
+	h := middleware(http.HandlerFunc(handler))
+
+	r := httptest.NewRequest("POST", "/some/path", strings.NewReader("example"))
+	w := httptest.NewRecorder()
+
+	h.ServeHTTP(w, r)
 }
